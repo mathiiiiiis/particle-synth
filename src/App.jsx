@@ -98,24 +98,32 @@ export default function App() {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
     }
+
+    if (audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume();
+    }
+
     const ctx = audioContextRef.current;
     const s = settingsRef.current;
     setIsAudioEnabled(true);
 
-    masterGainRef.current = ctx.createGain();
-    masterGainRef.current.gain.value = s.masterVol;
+    //cnly create nodes if not exist
+    if (!masterGainRef.current) {
+        masterGainRef.current = ctx.createGain();
+        masterGainRef.current.gain.value = s.masterVol;
 
-    delayNodeRef.current = ctx.createDelay();
-    delayNodeRef.current.delayTime.value = s.delayTime;
+        delayNodeRef.current = ctx.createDelay();
+        delayNodeRef.current.delayTime.value = s.delayTime;
 
-    feedbackNodeRef.current = ctx.createGain();
-    feedbackNodeRef.current.gain.value = s.feedback;
+        feedbackNodeRef.current = ctx.createGain();
+        feedbackNodeRef.current.gain.value = s.feedback;
 
-    masterGainRef.current.connect(delayNodeRef.current);
-    delayNodeRef.current.connect(feedbackNodeRef.current);
-    feedbackNodeRef.current.connect(delayNodeRef.current);
-    delayNodeRef.current.connect(ctx.destination);
-    masterGainRef.current.connect(ctx.destination);
+        masterGainRef.current.connect(delayNodeRef.current);
+        delayNodeRef.current.connect(feedbackNodeRef.current);
+        feedbackNodeRef.current.connect(delayNodeRef.current);
+        delayNodeRef.current.connect(ctx.destination);
+        masterGainRef.current.connect(ctx.destination);
+    }
   };
 
   useEffect(() => {
@@ -168,6 +176,8 @@ export default function App() {
     };
 
     const handleMouseDown = (e) => {
+      if (e.target.closest('button, a, input, .settings-panel')) return;
+
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -178,8 +188,8 @@ export default function App() {
     };
 
     const handleMouseMove = (e) => {
-      e.preventDefault();
       if (pointersRef.current.has('mouse')) {
+        e.preventDefault();
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -190,11 +200,12 @@ export default function App() {
     };
 
     const handleMouseUp = (e) => {
-      e.preventDefault();
       pointersRef.current.delete('mouse');
     };
 
     const handleTouchStart = (e) => {
+      if (e.target.closest('button, a, input, .settings-panel')) return;
+
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
       
@@ -209,21 +220,25 @@ export default function App() {
     };
 
     const handleTouchMove = (e) => {
-      e.preventDefault();
+      if (pointersRef.current.size > 0) {
+        e.preventDefault();
+      }
+      
       const rect = canvas.getBoundingClientRect();
 
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
-        const x = t.clientX - rect.left;
-        const y = t.clientY - rect.top;
-        
-        pointersRef.current.set(t.identifier, { x, y });
-        processPoint(x, y);
+
+        if (pointersRef.current.has(t.identifier)) {
+            const x = t.clientX - rect.left;
+            const y = t.clientY - rect.top;
+            pointersRef.current.set(t.identifier, { x, y });
+            processPoint(x, y);
+        }
       }
     };
 
     const handleTouchEnd = (e) => {
-      e.preventDefault();
       for (let i = 0; i < e.changedTouches.length; i++) {
         pointersRef.current.delete(e.changedTouches[i].identifier);
       }
