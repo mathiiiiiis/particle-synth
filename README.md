@@ -13,7 +13,7 @@ Interactive particle synth toy. Click or tap and drag to spawn particles that mo
 * **X axis** → Quantized pitch (C minor pentatonic scale)
 * **Y axis** → Filter cutoff (brightness)
 
-This started as a small experiment in early 2025. I found it again and ended up improving it in one night. It triggers something inside of me when everything lines up visually and sonically. I hope it does the same for you.
+This started as a small experiment in early 2025. I found it again and ended up improving it in one night. It triggers something inside of me and I hope it does the same for you.
 
 ### Features
 
@@ -43,5 +43,3 @@ npm run dev
 ```bash
 npm run build
 ```
-
-Output is written to `dist/`.
