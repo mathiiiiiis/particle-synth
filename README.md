@@ -1,20 +1,35 @@
 # Particle Synth
 
-Interactive particle synth toy. Click/tap and drag to spawn particles and make sounds. (triggers something in me idk if it does for you)
+<img
+  src="assets/preview.gif"
+  alt="Particle Synth Preview"
+  width="600"
+  style="border-radius: 12px;"
+/>
 
 
-- **X axis** → pitch
-- **Y axis** → filter/detune
+Interactive particle synth toy. Click or tap and drag to spawn particles that move, collide, and generate sound in real time.
+
+* **X axis** → Quantized pitch (C minor pentatonic scale)
+* **Y axis** → Filter cutoff (brightness)
+
+This started as a small experiment in early 2025. I found it again and ended up improving it in one night. It triggers something inside of me when everything lines up visually and sonically. I hope it does the same for you.
+
+### Features
+
+* **Atmospheric audio** with built-in delay and feedback
+* **Settings panel** via gear icon to tweak physics, trails, audio FX, and grid behavior
+* **Musical typing**: notes are snapped to a scale so nothing sounds wrong
 
 ## Run with Docker
 
 ```bash
 cp .env.example .env
-#edit .env if you want a different port
+# edit .env if you want a different port
 docker compose up -d --build
 ```
 
-Default port is 3000. Set `PORT` in your `.env` to change it.
+Default port is `3000`. Set `PORT` in your `.env` to change it.
 
 ## Development
 
@@ -29,4 +44,4 @@ npm run dev
 npm run build
 ```
 
-Output goes to `dist/`.
+Output is written to `dist/`.
