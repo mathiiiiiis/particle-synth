@@ -1,0 +1,7 @@
+services:
+  particle-synth:
+    build: .
+    container_name: particle-synth
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:80"
