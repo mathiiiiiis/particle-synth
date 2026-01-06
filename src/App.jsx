@@ -39,7 +39,8 @@ export default function App() {
   const feedbackNodeRef = useRef(null);
   
   const particlesRef = useRef([]);
-  const mouseRef = useRef({ x: 0, y: 0, down: false });
+  //map structure: id -> { x, y }
+  const pointersRef = useRef(new Map());
   const hueRef = useRef(0);
   
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
@@ -67,7 +68,6 @@ export default function App() {
     const index = Math.floor(percentage * SCALE.length);
     const safeIndex = Math.min(Math.max(index, 0), SCALE.length - 1);
     
-    // 0 = x1, 1 = x2, -1 = x0.5 etc
     const baseFreq = SCALE[safeIndex];
     const freq = baseFreq * Math.pow(2, s.octaveShift);
 
@@ -155,55 +155,88 @@ export default function App() {
       });
     };
 
-    const getPos = (e) => {
-      const rect = canvas.getBoundingClientRect();
-      if (e.touches && e.touches.length > 0) {
-        return {
-          x: e.touches[0].clientX - rect.left,
-          y: e.touches[0].clientY - rect.top
-        };
-      }
-      return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      };
-    };
-
-    const handleMove = (e) => {
-      e.preventDefault();
-      const pos = getPos(e);
-      mouseRef.current.x = pos.x;
-      mouseRef.current.y = pos.y;
-      
-      if (mouseRef.current.down) {
+    const processPoint = (x, y) => {
         for (let i = 0; i < 3; i++) {
-          spawnParticle(
-            pos.x + (Math.random() - 0.5) * 20,
-            pos.y + (Math.random() - 0.5) * 20
-          );
+            spawnParticle(
+              x + (Math.random() - 0.5) * 20,
+              y + (Math.random() - 0.5) * 20
+            );
         }
         if (Math.random() < settingsRef.current.spawnRate) {
-          playTone(pos.x, pos.y, canvas.offsetWidth, canvas.offsetHeight);
+            playTone(x, y, canvas.offsetWidth, canvas.offsetHeight);
         }
+    };
+
+    const handleMouseDown = (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      pointersRef.current.set('mouse', { x, y });
+      processPoint(x, y);
+    };
+
+    const handleMouseMove = (e) => {
+      e.preventDefault();
+      if (pointersRef.current.has('mouse')) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        pointersRef.current.set('mouse', { x, y });
+        processPoint(x, y);
       }
     };
 
-    const handleDown = (e) => {
+    const handleMouseUp = (e) => {
       e.preventDefault();
-      mouseRef.current.down = true;
-      handleMove(e);
-    };
-    
-    const handleUp = () => {
-      mouseRef.current.down = false;
+      pointersRef.current.delete('mouse');
     };
 
-    canvas.addEventListener('mousemove', handleMove);
-    canvas.addEventListener('touchmove', handleMove, { passive: false });
-    canvas.addEventListener('mousedown', handleDown);
-    canvas.addEventListener('touchstart', handleDown, { passive: false });
-    window.addEventListener('mouseup', handleUp);
-    window.addEventListener('touchend', handleUp);
+    const handleTouchStart = (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        const x = t.clientX - rect.left;
+        const y = t.clientY - rect.top;
+        
+        pointersRef.current.set(t.identifier, { x, y });
+        processPoint(x, y);
+      }
+    };
+
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        const x = t.clientX - rect.left;
+        const y = t.clientY - rect.top;
+        
+        pointersRef.current.set(t.identifier, { x, y });
+        processPoint(x, y);
+      }
+    };
+
+    const handleTouchEnd = (e) => {
+      e.preventDefault();
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        pointersRef.current.delete(e.changedTouches[i].identifier);
+      }
+    };
+
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('touchcancel', handleTouchEnd);
 
     const animate = () => {
       const width = canvas.offsetWidth;
@@ -217,7 +250,7 @@ export default function App() {
 
       //only draw grid if showGrid = true
       if (s.showGrid && width > 0) {
-        
+
         //draw grid (passive)
         ctx.lineWidth = 1;
         ctx.strokeStyle = `rgba(255, 255, 255, 0.02)`;
@@ -299,12 +332,15 @@ export default function App() {
     return () => {
       cancelAnimationFrame(animationId);
       window.removeEventListener('resize', resize);
-      canvas.removeEventListener('mousemove', handleMove);
-      canvas.removeEventListener('touchmove', handleMove);
-      canvas.removeEventListener('mousedown', handleDown);
-      canvas.removeEventListener('touchstart', handleDown);
-      window.removeEventListener('mouseup', handleUp);
-      window.removeEventListener('touchend', handleUp);
+      
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchEnd);
     };
   }, [playTone]);
 
